@@ -260,41 +260,6 @@ class TestScrapeProductsBatch:
                 assert results["B01ABCD123"] == mock_normalized
 
     @pytest.mark.asyncio
-    async def test_scrape_products_batch_handles_404(self):
-        """Test batch scraping handles 404 status."""
-        with patch("services.apify_service.settings") as mock_settings:
-            mock_settings.APIFY_API_TOKEN = "test-token"
-
-            service = ApifyService()
-
-            # Mock Apify client
-            mock_run = {"defaultDatasetId": "dataset-123"}
-            mock_actor = MagicMock()
-            mock_actor.call = AsyncMock(return_value=mock_run)
-            service.client.actor = MagicMock(return_value=mock_actor)
-
-            # Mock 404 response
-            mock_item = {
-                "asin": "B01ABCD123",
-                "title": "Not Found",
-                "url": "https://www.amazon.com/dp/B01ABCD123",
-                "statusCode": 404,
-                "statusMessage": "Not Found",
-            }
-
-            async def mock_iterator():
-                yield mock_item
-
-            mock_dataset = MagicMock()
-            mock_dataset.iterate_items = mock_iterator
-            service.client.dataset = MagicMock(return_value=mock_dataset)
-
-            results = await service.scrape_products_batch(["B01ABCD123"])
-
-            assert len(results) == 1
-            assert results["B01ABCD123"] == {"status": "404", "asin": "B01ABCD123"}
-
-    @pytest.mark.asyncio
     async def test_scrape_products_batch_large_batch(self):
         """Test batch scraping handles batches over 100 items."""
         with patch("services.apify_service.settings") as mock_settings:

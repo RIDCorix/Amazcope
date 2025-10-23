@@ -67,7 +67,7 @@ async def get_product_details(product_id: UUID) -> dict[str, Any]:
                 "id": product.id,
                 "asin": product.asin,
                 "title": product.title,
-                "description": product.description,
+                "description": product.product_description,
                 "marketplace": product.marketplace,
                 "category": product.category,
                 "brand": product.brand,
@@ -79,7 +79,7 @@ async def get_product_details(product_id: UUID) -> dict[str, Any]:
                 "current_rating": product.rating,
                 "review_count": product.review_count,
                 "image_url": product.image_url,
-                "product_url": product.product_url,
+                "product_url": product.url,
                 "is_active": product.is_active,
                 "created_at": product.created_at.isoformat(),
                 "updated_at": product.updated_at.isoformat(),
@@ -107,7 +107,7 @@ async def search_products(
         List of matching products with basic information
     """
     async with get_async_db_context() as db:
-        stmt = select(Product).options(selectinload(Product.user_products))
+        stmt = select(Product).options(selectinload(Product.owners))
 
         if marketplace:
             stmt = stmt.where(Product.marketplace == marketplace)
@@ -388,25 +388,22 @@ async def trigger_product_refresh(product_id: UUID) -> dict[str, Any]:
     """
     from products.tasks import update_single_product
 
-    try:
-        async with get_async_db_context() as db:
-            result = await db.execute(select(Product).where(Product.id == product_id))
-            product = result.scalar_one_or_none()
+    async with get_async_db_context() as db:
+        result = await db.execute(select(Product).where(Product.id == product_id))
+        product = result.scalar_one_or_none()
 
-            if not product:
-                return {"error": f"Product with ID {product_id} not found"}
+        if not product:
+            return {"error": f"Product with ID {product_id} not found"}
 
-            # Queue the scraping task
-            update_single_product.send(product_id)
+        # Queue the scraping task
+        update_single_product.send(product_id)
 
-            return {
-                "success": True,
-                "product_id": product.id,
-                "asin": product.asin,
-                "message": "Product refresh queued successfully",
-            }
-    except Exception as e:
-        return {"error": f"Failed to trigger refresh: {str(e)}"}
+        return {
+            "success": True,
+            "product_id": product.id,
+            "asin": product.asin,
+            "message": "Product refresh queued successfully",
+        }
 
 
 @mcp_server.tool()
@@ -542,7 +539,6 @@ async def update_user_product_settings(
     price_change_threshold: float | None = None,
     bsr_change_threshold: float | None = None,
     notes: str | None = None,
-    tags: list[str] | None = None,
 ) -> dict[str, Any]:
     """Update user-specific product settings (through UserProduct relationship).
 
@@ -553,7 +549,6 @@ async def update_user_product_settings(
         price_change_threshold: Custom price alert threshold (optional)
         bsr_change_threshold: Custom BSR alert threshold (optional)
         notes: User notes about this product (optional)
-        tags: List of tags for organization (optional)
 
     Returns:
         Updated user-product settings
@@ -581,8 +576,6 @@ async def update_user_product_settings(
                 user_product.bsr_change_threshold = bsr_change_threshold
             if notes is not None:
                 user_product.notes = notes
-            if tags is not None:
-                user_product.tags = tags
 
             await db.commit()
             await db.refresh(user_product)
@@ -595,7 +588,6 @@ async def update_user_product_settings(
                 "price_change_threshold": user_product.price_change_threshold,
                 "bsr_change_threshold": user_product.bsr_change_threshold,
                 "notes": user_product.notes,
-                "tags": user_product.tags,
                 "message": "User product settings updated successfully",
             }
     except Exception as e:
@@ -760,7 +752,6 @@ async def add_suggestion_action(
     current_value: str | None = None,
     reasoning: str = "",
     impact_description: str | None = None,
-    order: int = 0,
 ) -> dict[str, Any]:
     """Add an action to an existing suggestion.
 
@@ -773,7 +764,6 @@ async def add_suggestion_action(
         current_value: Current value for reference
         reasoning: Specific reasoning for this action
         impact_description: Expected impact description
-        order: Order of action within suggestion
 
     Returns:
         Created action details
@@ -797,7 +787,6 @@ async def add_suggestion_action(
                 proposed_value=proposed_value,
                 reasoning=reasoning or f"Amazcope suggests updating {target_field}",
                 impact_description=impact_description,
-                order=order,
             )
             db.add(action)
             await db.commit()
@@ -1181,7 +1170,11 @@ async def generate_daily_report(
     # Parse user_id if provided
     target_user_id = None
     if user_id:
-        target_user_id = uuid.UUID(user_id)
+        # Handle both string and UUID types
+        if isinstance(user_id, uuid.UUID):
+            target_user_id = user_id
+        else:
+            target_user_id = uuid.UUID(user_id)
     # Prepare report data
     report_data = {
         "products_analyzed": products_analyzed,

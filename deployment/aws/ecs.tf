@@ -69,9 +69,9 @@ resource "aws_ecr_repository" "backend" {
   tags = var.tags
 }
 
-# CloudWatch Log Group
+# CloudWatch Log Group for Backend
 resource "aws_cloudwatch_log_group" "backend" {
-  name              = "/ecs/${var.project_name}-${var.environment}"
+  name              = "/ecs/${local.project_full_name}-backend"
   retention_in_days = 30
 
   tags = var.tags
@@ -100,6 +100,30 @@ resource "aws_iam_role" "ecs_task_execution" {
 resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   role       = aws_iam_role.ecs_task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# CloudWatch Logs permissions for ECS task execution role
+resource "aws_iam_role_policy" "ecs_task_execution_logs" {
+  name = "cloudwatch-logs"
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = [
+          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${var.project_name}-${var.environment}*",
+          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${var.project_name}-${var.environment}*:*"
+        ]
+      }
+    ]
+  })
 }
 
 # ECS Task Role (for application)
@@ -254,8 +278,11 @@ resource "aws_ecs_service" "backend_service" {
 
 }
 
-resource "aws_cloudwatch_log_group" "scheduler" { # NOSONAR
-  name = "/ecs/${local.project_full_name}-scheduler"
+resource "aws_cloudwatch_log_group" "scheduler" {
+  name              = "/ecs/${local.project_full_name}-scheduler"
+  retention_in_days = 30
+
+  tags = var.tags
 }
 
 # ECS Task Definition

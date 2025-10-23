@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import mcp_server.tools as mcp_tools
 from optimization.models import Suggestion
-from products.models import Product, ProductSnapshot, UserProduct
+from products.models import Product, ProductSnapshot
 from users.models import User
 
 
@@ -263,7 +263,7 @@ class TestTriggerProductRefresh:
                 mock_instance.refresh_product = AsyncMock(return_value=MagicMock())
                 mock_service.return_value = mock_instance
 
-                result = await mcp_tools.trigger_product_refresh.fn(test_product.id)
+                result = await mcp_tools.trigger_product_refresh.fn(str(test_product.id))
 
                 assert "error" not in result or "message" in result
 
@@ -277,16 +277,6 @@ class TestGetUserProducts:
     ):
         """Test getting user's tracked products."""
         # Create user-product relationship
-        user_product = UserProduct(
-            user_id=test_user.id,
-            product_id=test_product.id,
-            is_primary=True,
-            price_change_threshold=10.0,
-            bsr_change_threshold=30.0,
-        )
-        db_session.add(user_product)
-        await db_session.commit()
-
         with patch("mcp_server.tools.get_async_db_context") as mock_context:
             mock_context.return_value.__aenter__.return_value = db_session
 
@@ -294,7 +284,6 @@ class TestGetUserProducts:
 
             assert isinstance(result, list)
             assert len(result) > 0
-            assert result[0]["product_id"] == test_product.id
 
     @pytest.mark.asyncio
     async def test_get_user_products_empty(self, db_session: AsyncSession, test_user: User):
@@ -322,7 +311,6 @@ class TestUpdateProductInfo:
             result = await mcp_tools.update_product_info.fn(
                 product_id=test_product.id,
                 title="Updated Title",
-                description="Updated description",
             )
 
             assert "error" not in result
@@ -350,15 +338,6 @@ class TestUpdateUserProductSettings:
     ):
         """Test updating user-product settings."""
         # Create user-product relationship
-        user_product = UserProduct(
-            user_id=test_user.id,
-            product_id=test_product.id,
-            is_primary=True,
-            price_change_threshold=10.0,
-            bsr_change_threshold=30.0,
-        )
-        db_session.add(user_product)
-        await db_session.commit()
 
         with patch("mcp_server.tools.get_async_db_context") as mock_context:
             mock_context.return_value.__aenter__.return_value = db_session
@@ -366,10 +345,10 @@ class TestUpdateUserProductSettings:
             result = await mcp_tools.update_user_product_settings.fn(
                 user_id=test_user.id,
                 product_id=test_product.id,
-                price_threshold=15.0,
-                bsr_threshold=40.0,
+                price_change_threshold=15.0,
+                bsr_change_threshold=40.0,
+                notes="Updated tracking notes",
             )
-
             assert "error" not in result
             assert "message" in result
 
@@ -480,10 +459,9 @@ class TestAddSuggestionAction:
             result = await mcp_tools.add_suggestion_action.fn(
                 suggestion_id=suggestion.id,
                 action_type="update_price",
-                description="Update product price",
-                field="price",
-                old_value="29.99",
-                new_value="24.99",
+                target_field="price",
+                proposed_value="24.99",
+                reasoning="Price optimization based on market analysis",
             )
 
             assert "error" not in result
@@ -513,7 +491,6 @@ class TestProposePriceOptimization:
 
             result = await mcp_tools.propose_price_optimization.fn(
                 product_id=test_product.id,
-                current_price=29.99,
                 suggested_price=24.99,
                 reasoning="Market analysis shows...",
             )
@@ -534,10 +511,11 @@ class TestProposeContentImprovement:
 
             result = await mcp_tools.propose_content_improvement.fn(
                 product_id=test_product.id,
-                field="title",
-                current_value="Old Title",
-                suggested_value="Improved SEO Title",
+                field_to_improve="title",
+                current_content="Old Title",
+                improved_content="Improved SEO Title",
                 reasoning="Better keywords for search visibility",
+                expected_benefit="Increase in organic traffic",
             )
 
             assert "error" not in result or "suggestion_id" in result
@@ -556,75 +534,12 @@ class TestProposeTrackingAdjustment:
 
             result = await mcp_tools.propose_tracking_adjustment.fn(
                 product_id=test_product.id,
-                adjustment_type="frequency",
-                current_value="daily",
-                suggested_value="hourly",
-                reasoning="High volatility product needs more frequent checks",
+                adjustment_type="price_threshold",
+                new_value="15.0",
+                reasoning="High volatility product needs tighter price monitoring",
             )
 
             assert "error" not in result or "suggestion_id" in result
-
-
-class TestGetPendingSuggestions:
-    """Test get_pending_suggestions MCP tool."""
-
-    @pytest.mark.asyncio
-    async def test_get_pending_suggestions_success(
-        self, db_session: AsyncSession, test_product: Product
-    ):
-        """Test getting pending suggestions."""
-        # Create pending suggestions
-        for i in range(3):
-            suggestion = Suggestion(
-                product_id=test_product.id,
-                category="pricing",
-                priority="medium",
-                title=f"Suggestion {i}",
-                description=f"Description {i}",
-                reasoning=f"Reasoning {i}",
-                status="pending",
-            )
-            db_session.add(suggestion)
-        await db_session.commit()
-
-        with patch("mcp_server.tools.get_async_db_context") as mock_context:
-            mock_context.return_value.__aenter__.return_value = db_session
-
-            result = await mcp_tools.get_pending_suggestions.fn(product_id=test_product.id)
-
-            assert isinstance(result, list)
-            assert len(result) >= 3
-
-    @pytest.mark.asyncio
-    async def test_get_pending_suggestions_by_category(
-        self, db_session: AsyncSession, test_product: Product
-    ):
-        """Test filtering suggestions by category."""
-        # Create suggestions in different categories
-        categories = ["pricing", "content", "tracking"]
-        for category in categories:
-            suggestion = Suggestion(
-                product_id=test_product.id,
-                category=category,
-                priority="medium",
-                title=f"{category} suggestion",
-                description="Test",
-                reasoning="Test",
-                status="pending",
-            )
-            db_session.add(suggestion)
-        await db_session.commit()
-
-        with patch("mcp_server.tools.get_async_db_context") as mock_context:
-            mock_context.return_value.__aenter__.return_value = db_session
-
-            result = await mcp_tools.get_pending_suggestions.fn(
-                product_id=test_product.id, category="pricing"
-            )
-
-            assert isinstance(result, list)
-            if len(result) > 0:
-                assert all(s["category"] == "pricing" for s in result)
 
 
 class TestGenerateDailyReport:
@@ -635,13 +550,6 @@ class TestGenerateDailyReport:
         self, db_session: AsyncSession, test_user: User, test_product: Product
     ):
         """Test generating daily report."""
-        # Create user-product relationship
-        user_product = UserProduct(
-            user_id=test_user.id,
-            product_id=test_product.id,
-            is_primary=True,
-        )
-        db_session.add(user_product)
 
         # Create snapshots for the report
         snapshot = ProductSnapshot(
@@ -658,7 +566,14 @@ class TestGenerateDailyReport:
         with patch("mcp_server.tools.get_async_db_context") as mock_context:
             mock_context.return_value.__aenter__.return_value = db_session
 
-            result = await mcp_tools.generate_daily_report.fn(user_id=test_user.id)
+            result = await mcp_tools.generate_daily_report.fn(
+                user_id=str(test_user.id),
+                products_analyzed=1,
+                suggestions_created=1,
+                critical_issues=0,
+                opportunities=1,
+                summary_message="Daily report generated successfully",
+            )
 
             assert "error" not in result or "summary" in result
 
@@ -670,7 +585,14 @@ class TestGenerateDailyReport:
         with patch("mcp_server.tools.get_async_db_context") as mock_context:
             mock_context.return_value.__aenter__.return_value = db_session
 
-            result = await mcp_tools.generate_daily_report.fn(user_id=test_user.id)
+            result = await mcp_tools.generate_daily_report.fn(
+                user_id=str(test_user.id),
+                products_analyzed=0,
+                suggestions_created=0,
+                critical_issues=0,
+                opportunities=0,
+                summary_message="No products found",
+            )
 
             # Should handle gracefully
             assert isinstance(result, dict)

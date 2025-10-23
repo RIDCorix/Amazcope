@@ -117,29 +117,9 @@ class TestUnclaimProduct:
         client: AsyncClient,
         test_product: Product,
         auth_headers: dict,
-        test_user: User,
-        db_session,
     ):
         """Test successfully unclaiming a product."""
         # Check if ownership already exists from fixtures
-        from sqlalchemy import select
-
-        result = await db_session.execute(
-            select(UserProduct).where(
-                UserProduct.user_id == test_user.id, UserProduct.product_id == test_product.id
-            )
-        )
-        existing = result.scalar_one_or_none()
-
-        # Only create if doesn't exist
-        if not existing:
-            user_product = UserProduct(
-                user_id=test_user.id,
-                product_id=test_product.id,
-                is_primary=True,
-            )
-            db_session.add(user_product)
-            await db_session.commit()
 
         response = await client.delete(
             f"/api/v1/user-products/{test_product.id}/unclaim",
@@ -180,30 +160,9 @@ class TestGetOwnedProducts:
         client: AsyncClient,
         test_product: Product,
         auth_headers: dict,
-        test_user: User,
-        db_session,
     ):
         """Test getting list of owned products."""
         # Check if ownership already exists from fixtures
-        from sqlalchemy import select
-
-        result = await db_session.execute(
-            select(UserProduct).where(
-                UserProduct.user_id == test_user.id, UserProduct.product_id == test_product.id
-            )
-        )
-        existing = result.scalar_one_or_none()
-
-        # Only create if doesn't exist
-        if not existing:
-            user_product = UserProduct(
-                user_id=test_user.id,
-                product_id=test_product.id,
-                is_primary=True,
-                notes="Test product ownership",
-            )
-            db_session.add(user_product)
-            await db_session.commit()
 
         response = await client.get(
             "/api/v1/user-products/owned",
@@ -421,29 +380,10 @@ class TestTransferOwnership:
         client: AsyncClient,
         test_product: Product,
         auth_headers: dict,
-        test_user: User,
         db_session,
     ):
         """Test transferring product ownership to another user."""
         # Check if ownership already exists from fixtures
-        from sqlalchemy import select
-
-        result = await db_session.execute(
-            select(UserProduct).where(
-                UserProduct.user_id == test_user.id, UserProduct.product_id == test_product.id
-            )
-        )
-        existing = result.scalar_one_or_none()
-
-        # Only create if doesn't exist
-        if not existing:
-            user_product = UserProduct(
-                user_id=test_user.id,
-                product_id=test_product.id,
-                is_primary=True,
-            )
-            db_session.add(user_product)
-            await db_session.commit()
 
         # Create another user
         other_user = User(

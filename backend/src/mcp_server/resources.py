@@ -103,9 +103,9 @@ async def get_product_resource(product_id: int) -> str:
                     f"- **Review Count:** {product.review_count}",
                     "",
                     "## Description",
-                    product.description or "No description available",
+                    product.product_description or "No description available",
                     "",
-                    f"**Product URL:** {product.product_url}",
+                    f"**Product URL:** {product.url}",
                     f"**Created:** {product.created_at.strftime('%Y-%m-%d')}",
                     f"**Last Updated:** {product.updated_at.strftime('%Y-%m-%d %H:%M:%S')}",
                 ]
