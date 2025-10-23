@@ -1,0 +1,103 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Frontend and Backend Services",
+      "dependsOn": [
+        "Backend",
+        "Frontend: Run npm i",
+      ],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "panel": "shared",
+        "showReuseMessage": false,
+        "reveal": "never",
+        "group": "web"
+      }
+    },
+    {
+      "label": "Backend",
+      "command": "${command:workbench.action.debug.start}",
+      "type": "shell",
+      "args": ["Backend"],
+      "presentation": {
+        "panel": "new",
+        "group": "web",
+        "focus": false,
+        "showReuseMessage": true,
+        "close": false
+      }
+    },
+    {
+      "label": "Frontend: Run npm i",
+      "type": "shell",
+      "command": "trap 'exec $SHELL' INT; npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "web",
+        "focus": false,
+        "showReuseMessage": true,
+        "close": false
+      }
+    },
+    {
+      "label": "Docker: Run docker compose up",
+      "type": "shell",
+      "command": "docker compose up",
+      "options": {
+        "cwd": "${workspaceFolder}/deps",
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "startup",
+        "focus": false,
+        "showReuseMessage": true,
+        "close": false
+      }
+    },
+    {
+      "label": "Dramatiq Worker",
+      "type": "shell",
+      "command": "trap 'exec $SHELL' INT; sh worker-entrypoint.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/backend/src"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "workers",
+        "focus": false,
+        "showReuseMessage": true,
+        "close": false
+      }
+    },
+    {
+      "label": "APScheduler",
+      "type": "shell",
+      "command": "trap 'exec $SHELL' INT; sh scheduler-entrypoint.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/backend/src"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "scheduler",
+        "focus": false,
+        "showReuseMessage": true,
+        "close": false
+      }
+    },
+  ]
+}

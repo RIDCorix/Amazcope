@@ -1,0 +1,60 @@
+# ============================================================================
+# Terraform Variables Configuration Example
+# ============================================================================
+#
+
+# Grafana instance URL
+grafana_url = "http://localhost:3005"
+
+# Option 1: Basic Authentication (username:password)
+# Use this for local development or testing
+grafana_auth = "admin:adminpassword"
+
+# ============================================================================
+# InfluxDB Configuration (for k6 Load Testing Metrics)
+# ============================================================================
+
+# Enable/disable InfluxDB datasource
+enable_influxdb = true
+
+# InfluxDB instance URL
+influxdb_url = "http://influxdb:8086"
+
+# InfluxDB database name (must match k6 output configuration)
+influxdb_database = "amazcope_metrics"
+
+# InfluxDB authentication (optional - leave empty if no auth)
+influxdb_username = "admin"
+influxdb_password = "adminpassword"
+
+# Set as default datasource in Grafana
+influxdb_is_default = true
+
+# ============================================================================
+# Prometheus Configuration (for Application Metrics)
+# ============================================================================
+
+# Enable/disable Prometheus datasource
+enable_prometheus = true
+
+
+# Set as default datasource in Grafana (only one can be default)
+prometheus_is_default = false
+
+
+sentry_auth_token = "sntryu_..."
+sentry_url      = "https://ray-x6.sentry.io"
+sentry_base_url = "https://ray-x6.sentry.io"
+sentry_team    = "ray"
+sentry_organization = "ray-x6"
+
+
+
+# Prometheus instance URL
+prometheus_url = "http://prometheus:9090"
+
+# Prometheus authentication (optional - leave empty if no auth)
+prometheus_basic_auth_user = ""
+prometheus_basic_auth_password = ""
+
+# Set as default datasource in Grafana (only one can be default)

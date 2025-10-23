@@ -1,0 +1,57 @@
+[
+  {
+    "name": "backend",
+    "image": "${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com/${PROJECT_FULL_NAME}-backend:latest",
+    "cpu": 2048,
+    "memory": 15360,
+    "portMappings": [
+      {
+        "name": "backend-8000-tcp",
+        "containerPort": 8000,
+        "hostPort": 8000,
+        "protocol": "tcp"
+      }
+    ],
+    "essential": true,
+    "readonlyRootFilesystem": false,
+    "command": ["sh", "./backend-entrypoint.sh"],
+    "secrets": [],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "workingDirectory": "/home/marktech/",
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/${PROJECT_FULL_NAME}-backend",
+        "awslogs-create-group": "true",
+        "awslogs-region": "ap-southeast-1",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "systemControls": []
+  },
+  {
+    "name": "worker",
+    "image": "${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com/${PROJECT_FULL_NAME}-backend:latest",
+    "cpu": 2048,
+    "memory": 15360,
+    "portMappings": [],
+    "essential": false,
+    "readonlyRootFilesystem": false,
+    "command": ["sh", "./worker-entrypoint.sh"],
+    "secrets": [],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "workingDirectory": "/home/marktech/",
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/${PROJECT_FULL_NAME}-backend",
+        "awslogs-create-group": "true",
+        "awslogs-region": "ap-southeast-1",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "systemControls": []
+  }
+]

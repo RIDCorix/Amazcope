@@ -1,0 +1,283 @@
+name: product-cd
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "**"
+    paths:
+      - backend/**
+      - frontend/**
+      - .github/workflows/**
+      - deployment/aws/**
+
+jobs:
+  get-changed-folder:
+    name: Get Changed Folder
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      build-and-deploy-any-changed: ${{ steps.get-changed.outputs.build-and-deploy_any_changed }}
+      build-and-deploy-changed-folders: ${{ steps.get-changed.outputs.build-and-deploy_all_changed_files }}
+      frontend-any-changed: ${{ steps.get-changed.outputs.frontend_any_changed }}
+      deployment-any-changed: ${{ steps.get-changed.outputs.deployment_any_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get Changed Folder
+        uses: tj-actions/changed-files@v46
+        id: get-changed
+        with:
+          dir_names: true
+          dir_names_max_depth: 1
+          dir_names_exclude_current_dir: true
+          matrix: true
+          files_yaml: |
+            build-and-deploy:
+              - backend/**
+            frontend:
+              - frontend/**
+            deployment:
+              - deployment/aws/**
+
+  set-environment:
+    name: Set Environment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      environment: ${{ steps.set-environment.outputs.environment }}
+      domain_postfix: ${{ steps.set-environment.outputs.domain_postfix }}
+      short_sha: ${{ steps.set-short-sha.outputs.short_sha }}
+    steps:
+      - name: Set Environment
+        id: set-environment
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "branch" && "${{ github.ref_name }}" == "main" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "domain_postfix=" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "domain_postfix=" >> $GITHUB_OUTPUT
+          else
+            echo "environment=stg" >> $GITHUB_OUTPUT
+            echo "domain_postfix=-stg" >> $GITHUB_OUTPUT
+          fi
+      - name: Set Short SHA
+        id: set-short-sha
+        shell: bash
+        run: |
+          echo "short_sha=${GITHUB_SHA::6}" >> $GITHUB_OUTPUT
+
+  terraform:
+    needs: [get-changed-folder, set-environment]
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.set-environment.outputs.environment == 'prod' ||
+      (needs.set-environment.outputs.environment == 'stg' && needs.get-changed-folder.outputs.deployment-any-changed == 'true')
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      TF_VAR_supabase_org_id: ${{ secrets.SUPABASE_ORG_ID }}
+      TF_VAR_enable_cloudfront: ${{ secrets.ENABLE_CLOUDFRONT }}
+      TF_VAR_enable_alb: ${{ secrets.ENABLE_ALB }}
+      TF_VAR_postgres_host: ${{ secrets.POSTGRES_HOST }}
+      TF_VAR_postgres_port: ${{ secrets.POSTGRES_PORT }}
+      TF_VAR_postgres_db: ${{ secrets.POSTGRES_DB }}
+      TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
+      TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        working-directory: ./deployment/aws
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+        # Install the latest version of Terraform CLI and configure the Terraform CLI configuration.
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.x" # Specify your desired Terraform version
+
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Terraform Init
+        run: terraform init -backend-config="key=${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}/terraform.tfstate"
+
+      # Checks that all Terraform configuration files adhere to a canonical format
+      - name: Terraform Format
+        run: terraform fmt
+
+      # Generates an execution plan for Terraform
+      - name: Terraform Plan
+        run: terraform plan
+
+        # On push to "main", build or change infrastructure according to Terraform configuration files
+        # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
+
+  build-image:
+    name: Build Docker Image
+    needs: [get-changed-folder, set-environment, terraform]
+    runs-on: ubuntu-latest
+    if: |
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        needs.set-environment.outputs.environment == 'prod' || (
+          needs.set-environment.outputs.environment == 'stg' &&
+          needs.get-changed-folder.outputs.build-and-deploy-changed-folders != '[]'
+        )
+      )
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}-backend
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        working-directory: ./backend
+
+  deploy-ecs:
+    needs: [get-changed-folder, build-image, set-environment]
+    if: always() && (
+      github.event_name == 'workflow_dispatch' ||
+      needs.set-environment.outputs.environment == 'prod' ||
+      (needs.set-environment.outputs.environment == 'stg' && needs.get-changed-folder.outputs.build-and-deploy-any-changed == 'true')
+      )
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service-name: [backend, scheduler]
+        include:
+          - service-name: backend
+            watch-folder: backend
+          - service-name: scheduler
+            watch-folder: backend
+    steps:
+      - name: Checkout
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          contains(needs.get-changed-folder.outputs.build-and-deploy-changed-folders, matrix.watch-folder)
+        uses: actions/checkout@v4
+
+      - name: Install AWS CLI
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          contains(needs.get-changed-folder.outputs.build-and-deploy-changed-folders, matrix.watch-folder)
+        run: |
+          pip install awscli
+
+      - name: Download task definition
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          contains(needs.get-changed-folder.outputs.build-and-deploy-changed-folders, matrix.watch-folder)
+        run: |
+          aws ecs describe-task-definition --task-definition \
+          ${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}-${{ matrix.service-name }} \
+          --query taskDefinition \
+          | jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .enableFaultInjection
+          )' > ${{ matrix.service-name }}-task-definition.json
+      - name: Deploy Amazon ECS task definition
+        if: |
+          github.event_name == 'workflow_dispatch' ||
+          contains(needs.get-changed-folder.outputs.build-and-deploy-changed-folders, matrix.watch-folder)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1.5.0
+        with:
+          task-definition: ${{ matrix.service-name }}-task-definition.json
+          service: ${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}-${{ matrix.service-name }}
+          cluster: ${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}-cluster
+          wait-for-service-stability: true
+          force-new-deployment: true
+
+  deploy-frontend:
+    needs: [get-changed-folder, set-environment, terraform]
+    runs-on: ubuntu-latest
+    if: |
+      always() && (
+        github.event_name == 'workflow_dispatch' ||
+        needs.set-environment.outputs.environment == 'prod' || (
+          needs.set-environment.outputs.environment == 'stg' &&
+          needs.get-changed-folder.outputs.frontend-any-changed == 'true'
+        )
+      )
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.7.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Build
+        env:
+          VITE_BASE_URL: https://api-${{ vars.PROJECT_NAME }}${{ needs.set-environment.outputs.domain_postfix }}.transbiz.com/
+          VITE_DOES_SUPPORT_REVIEW: ${{ vars.REVIEW_ENABLED }}
+          VITE_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+          VITE_SENTRY_ORG: ${{ vars.SENTRY_ORG_NAME }}
+          VITE_SENTRY_PROJECT: ${{ vars.PROJECT_NAME }}
+          VITE_SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          VITE_SENTRY_URL: ${{ secrets.SENTRY_URL }}
+          VITE_ENVIRONMENT: ${{ needs.set-environment.outputs.environment }}
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          aws s3 sync --exact-timestamps dist s3://${{ vars.PROJECT_NAME }}-${{ needs.set-environment.outputs.environment }}-frontend

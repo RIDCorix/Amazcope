@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amazcope - Amazon Product Analytics</title>
+    <meta
+      name="description"
+      content="Advanced Amazon product tracking and analytics platform"
+    />
+
+    <!-- Preconnect to external domains for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Base theme for preventing flash -->
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+
+      /* Loading spinner for initial load */
+      .app-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Fallback content for users with JavaScript disabled -->
+    <noscript>
+      <div style="text-align: center; padding: 2rem">
+        <h1>JavaScript Required</h1>
+        <p>
+          This application requires JavaScript to run. Please enable JavaScript
+          in your browser.
+        </p>
+      </div>
+    </noscript>
+
+    <!-- Root element for React app -->
+    <div id="root">
+      <!-- Loading screen while JavaScript loads -->
+      <div class="app-loading">
+        <div class="spinner"></div>
+        <p>Loading Amazcope...</p>
+      </div>
+    </div>
+
+    <!-- Vite will inject the main script here -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

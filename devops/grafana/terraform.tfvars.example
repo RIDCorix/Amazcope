@@ -1,0 +1,228 @@
+# ============================================================================
+# Terraform Variables Configuration Example
+# ============================================================================
+#
+# INSTRUCTIONS:
+# 1. Copy this file to "terraform.tfvars" in the same directory
+# 2. Update the values with your actual Grafana and datasource settings
+# 3. Never commit terraform.tfvars to version control (it's in .gitignore)
+#
+# USAGE:
+#   terraform init
+#   terraform plan
+#   terraform apply
+#
+# ============================================================================
+
+# ============================================================================
+# Grafana Authentication
+# ============================================================================
+
+# Grafana instance URL
+grafana_url = "http://localhost:3000"
+
+# Option 1: Basic Authentication (username:password)
+# Use this for local development or testing
+grafana_auth = "admin:admin"
+
+# Option 2: API Key Authentication (recommended for production)
+# Generate an API key in Grafana:
+#   Settings → API Keys → Add API key → Role: Admin
+# Then uncomment and set:
+# grafana_api_key = "eyJrIjoiWW91ckFwaUtleUhlcmUiLCJuIjoiVGVycmFmb3JtIiwiaWQiOjF9"
+
+# NOTE: If grafana_api_key is set, it takes precedence over grafana_auth
+
+# ============================================================================
+# InfluxDB Configuration (for k6 Load Testing Metrics)
+# ============================================================================
+
+# Enable/disable InfluxDB datasource
+enable_influxdb = true
+
+# InfluxDB instance URL
+influxdb_url = "http://influxdb:8086"
+
+# InfluxDB database name (must match k6 output configuration)
+influxdb_database = "k6"
+
+# InfluxDB authentication (optional - leave empty if no auth)
+influxdb_username = ""
+influxdb_password = ""
+
+# Set as default datasource in Grafana
+influxdb_is_default = true
+
+# ============================================================================
+# Prometheus Configuration (for Application Metrics)
+# ============================================================================
+
+# Enable/disable Prometheus datasource
+enable_prometheus = true
+
+# Prometheus instance URL
+prometheus_url = "http://prometheus:9090"
+
+# Prometheus authentication (optional - leave empty if no auth)
+prometheus_basic_auth_user = ""
+prometheus_basic_auth_password = ""
+
+# Set as default datasource in Grafana (only one can be default)
+prometheus_is_default = false
+
+# ============================================================================
+# Sentry Configuration (for Error Tracking)
+# ============================================================================
+
+# Enable/disable Sentry datasource
+enable_sentry = false
+
+# Sentry instance URL (use https://sentry.io for SaaS)
+sentry_url = "https://sentry.io"
+
+# Sentry organization slug (find in Sentry Settings → Organization)
+sentry_org_slug = "your-org-slug"
+
+# Sentry authentication token (required if enable_sentry = true)
+# Generate token in Sentry:
+#   Settings → Account → API → Auth Tokens → Create New Token
+# Required scopes: org:read, project:read, event:read
+sentry_auth_token = ""
+
+# Enable/disable Sentry dashboard
+enable_sentry_dashboard = true
+
+# ============================================================================
+# Example Configurations for Different Environments
+# ============================================================================
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOCAL DEVELOPMENT (Docker Compose)
+# ─────────────────────────────────────────────────────────────────────────────
+# grafana_url  = "http://localhost:3000"
+# grafana_auth = "admin:admin"
+#
+# influxdb_url      = "http://localhost:8086"
+# influxdb_database = "k6"
+# influxdb_username = ""
+# influxdb_password = ""
+#
+# prometheus_url = "http://localhost:9090"
+# prometheus_basic_auth_user = ""
+# prometheus_basic_auth_password = ""
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCKER COMPOSE INTERNAL (Service Names)
+# ─────────────────────────────────────────────────────────────────────────────
+# Use this when Terraform runs inside Docker network
+# grafana_url  = "http://grafana:3000"
+# grafana_auth = "admin:admin"
+#
+# influxdb_url      = "http://influxdb:8086"
+# influxdb_database = "k6"
+#
+# prometheus_url = "http://prometheus:9090"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION (with API Key and Authentication)
+# ─────────────────────────────────────────────────────────────────────────────
+# grafana_url     = "https://grafana.example.com"
+# grafana_api_key = "eyJrIjoiWW91ckFwaUtleUhlcmUiLCJuIjoiVGVycmFmb3JtIiwiaWQiOjF9"
+# grafana_auth    = ""  # Leave empty when using API key
+#
+# influxdb_url      = "https://influxdb.example.com"
+# influxdb_database = "k6_prod"
+# influxdb_username = "k6_user"
+# influxdb_password = "secure-password-here"
+#
+# prometheus_url                  = "https://prometheus.example.com"
+# prometheus_basic_auth_user      = "prometheus"
+# prometheus_basic_auth_password  = "secure-password-here"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGING ENVIRONMENT
+# ─────────────────────────────────────────────────────────────────────────────
+# grafana_url  = "https://grafana-staging.example.com"
+# grafana_auth = "admin:staging-password"
+#
+# influxdb_url      = "https://influxdb-staging.example.com"
+# influxdb_database = "k6_staging"
+# influxdb_username = "k6_staging"
+# influxdb_password = "staging-password"
+#
+# prometheus_url                  = "https://prometheus-staging.example.com"
+# prometheus_basic_auth_user      = "prometheus"
+# prometheus_basic_auth_password  = "staging-password"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLOUD-HOSTED SERVICES (Grafana Cloud)
+# ─────────────────────────────────────────────────────────────────────────────
+# grafana_url     = "https://your-org.grafana.net"
+# grafana_api_key = "your-grafana-cloud-api-key"
+#
+# # For Grafana Cloud, you might use their hosted Prometheus
+# prometheus_url = "https://prometheus-prod-us-central-0.grafana.net/api/prom"
+# prometheus_basic_auth_user = "123456"
+# prometheus_basic_auth_password = "your-prometheus-api-key"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KUBERNETES CLUSTER
+# ─────────────────────────────────────────────────────────────────────────────
+# grafana_url  = "http://grafana.monitoring.svc.cluster.local:3000"
+# grafana_auth = "admin:k8s-admin-password"
+#
+# influxdb_url      = "http://influxdb.monitoring.svc.cluster.local:8086"
+# influxdb_database = "k6"
+#
+# prometheus_url = "http://prometheus-server.monitoring.svc.cluster.local:80"
+
+# ============================================================================
+# Feature Flags
+# ============================================================================
+
+# Enable/disable specific datasources
+# Useful for testing or gradual rollout
+# enable_influxdb   = true
+# enable_prometheus = true
+
+# Configure which datasource is the default in Grafana
+# NOTE: Only one datasource should be set as default
+# influxdb_is_default   = true
+# prometheus_is_default = false
+
+# ============================================================================
+# Dashboard Configuration
+# ============================================================================
+
+# Enable/disable dashboards
+# enable_k6_dashboard       = true
+# enable_cadvisor_dashboard = true
+# enable_sentry_dashboard   = true
+
+# Import official dashboards from grafana.com (requires JSON files)
+# import_k6_official_dashboard = false
+
+# ============================================================================
+# Security Best Practices
+# ============================================================================
+#
+# 1. NEVER commit terraform.tfvars to version control
+# 2. Use environment variables for sensitive data in CI/CD:
+#    export TF_VAR_grafana_api_key="your-key"
+#    export TF_VAR_influxdb_password="your-password"
+#
+# 3. Use secret management tools in production:
+#    - AWS Secrets Manager
+#    - HashiCorp Vault
+#    - Azure Key Vault
+#    - Google Secret Manager
+#
+# 4. Rotate API keys and passwords regularly
+#
+# 5. Use least-privilege API keys (e.g., "Editor" role instead of "Admin")
+#
+# 6. Enable HTTPS for all datasource URLs in production
+#
+# 7. Consider using Terraform Cloud for encrypted state storage
+#
+# ============================================================================

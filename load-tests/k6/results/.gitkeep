@@ -1,0 +1,57 @@
+# Results Directory
+
+This directory stores k6 load test results in JSON format.
+
+## File Naming Convention
+
+Results are automatically saved with timestamps:
+- `throughput-test-YYYYMMDD-HHMMSS.json`
+- `spike-test-YYYYMMDD-HHMMSS.json`
+- `soak-test-YYYYMMDD-HHMMSS.json`
+
+## Viewing Results
+
+### With jq (JSON processor)
+
+```bash
+# Pretty print
+cat throughput-test-20250121-143022.json | jq
+
+# Get average response time
+cat results.json | \
+  jq 'select(.type=="Point" and .metric=="http_req_duration") | .data.value' | \
+  jq -s 'add/length'
+
+# Get success rate
+cat results.json | \
+  jq 'select(.type=="Point" and .metric=="successful_requests") | .data.value' | \
+  jq -s '(add/length) * 100'
+
+# Get P95 latency
+cat results.json | \
+  jq 'select(.type=="Point" and .metric=="http_req_duration") | .data.value' | \
+  jq -s 'sort | .[length * 0.95 | floor]'
+```
+
+### Upload to k6 Cloud
+
+```bash
+k6 cloud results.json
+```
+
+### Import to Grafana
+
+1. Setup InfluxDB
+2. Run test with InfluxDB output:
+   ```bash
+   k6 run --out influxdb=http://localhost:8086/k6 ../throughput-test.js
+   ```
+3. Configure Grafana data source
+4. Import dashboard: https://grafana.com/grafana/dashboards/2587
+
+## .gitignore
+
+Results files are excluded from git to avoid repository bloat:
+- `*.json` - Test results
+- `*.txt` - Log files
+- `*.csv` - Exported data

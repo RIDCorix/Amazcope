@@ -1,0 +1,209 @@
+name: product-ci
+
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - backend/**
+      - frontend/**
+      - .github/workflows/**
+      - deployment/aws/**
+
+concurrency:
+  group: ${{ github.workflow }}-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-changed-folder:
+    name: Get Changed Folder
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      py-any-changed: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.get-changed.outputs.py_any_changed }}
+      py-changed-folders: ${{ github.event_name == 'workflow_dispatch' && '["backend"]' || steps.get-changed.outputs.py_all_changed_files }}
+      js-any-changed: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.get-changed.outputs.js_any_changed }}
+      js-changed-folders: ${{ github.event_name == 'workflow_dispatch' && '["frontend"]' || steps.get-changed.outputs.js_all_changed_files }}
+      deployment-any-changed: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.get-changed.outputs.deployment_any_changed }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Get Changed Folder
+        uses: tj-actions/changed-files@v46
+        id: get-changed
+        with:
+          dir_names: true
+          dir_names_max_depth: 1
+          dir_names_exclude_current_dir: true
+          matrix: true
+          files_yaml: |
+            py:
+              - backend/**
+            js:
+              - frontend/**
+            deployment:
+              - deployment/aws/**
+
+  terraform-check:
+    needs: [get-changed-folder]
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.get-changed-folder.outputs.deployment-any-changed == 'true'
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_supabase_access_token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      TF_VAR_supabase_org_id: ${{ secrets.SUPABASE_ORG_ID }}
+      TF_VAR_enable_cloudfront: ${{ secrets.ENABLE_CLOUDFRONT }}
+      TF_VAR_enable_alb: ${{ secrets.ENABLE_ALB }}
+      TF_VAR_postgres_host: ${{ secrets.POSTGRES_HOST }}
+      TF_VAR_postgres_port: ${{ secrets.POSTGRES_PORT }}
+      TF_VAR_postgres_db: ${{ secrets.POSTGRES_DB }}
+      TF_VAR_postgres_user: ${{ secrets.POSTGRES_USER }}
+      TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        working-directory: ./deployment/aws
+        shell: bash
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+        # Install the latest version of Terraform CLI and configure the Terraform CLI configuration.
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.x" # Specify your desired Terraform version
+
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-1
+
+      - name: Terraform Init
+        run: terraform init -backend-config="key=${{ vars.PROJECT_NAME }}-prod/terraform.tfstate"
+
+      # Checks that all Terraform configuration files adhere to a canonical format
+      - name: Terraform Format
+        run: terraform fmt
+
+      # Generates an execution plan for Terraform
+      - name: Terraform Plan
+        run: terraform plan
+
+  js-lint:
+    name: JS Lint
+    needs: get-changed-folder
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        changed-folder: ${{ fromJson(needs.get-changed-folder.outputs.js-changed-folders) }}
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.get-changed-folder.outputs.js-any-changed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Navigate to changed folder
+        run: |
+          cd ${{ matrix.changed-folder }}
+          npm install
+          npm run lint
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: git fetch --depth=1 origin +${{ github.base_ref }}
+      - name: Run Pre-commit
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
+        env:
+          SECRET_KEY: insecure-key-for-testing
+
+  py-lint:
+    name: Py Lint
+    runs-on: ubuntu-latest
+    needs: get-changed-folder
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.get-changed-folder.outputs.py-any-changed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: uv sync
+        run: cd backend && uv sync && cd ..
+      - run: git fetch --depth=1 origin +${{ github.base_ref }}
+      - name: Run Pre-commit
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files
+        env:
+          SECRET_KEY: insecure-key-for-testing
+
+  js-unit-test:
+    name: JS Unit Test
+    needs: [get-changed-folder, js-lint]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        changed-folder: ${{ fromJson(needs.get-changed-folder.outputs.js-changed-folders) }}
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.get-changed-folder.outputs.js-any-changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Navigate to changed folder
+        run: |
+          cd ${{ matrix.changed-folder }}
+          npm install
+          npm run test
+
+  py-unit-test:
+    name: Py Unit Test
+    runs-on: ubuntu-latest
+    needs: [get-changed-folder, py-lint]
+    strategy:
+      matrix:
+        changed-folder: ${{ fromJson(needs.get-changed-folder.outputs.py-changed-folders) }}
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.get-changed-folder.outputs.py-any-changed == 'true'
+    steps:
+      - uses: Bardavon-Health/actions-aws-ssm-params-to-env@v1.4.0
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: uv sync
+        run: cd backend && uv sync
+        working-directory: ${{ matrix.changed-folder }}
+      - run: uv run pytest src --cov=${{ matrix.changed-folder }} --cov-report=xml --cov-report=term-missing
+        working-directory: ${{ matrix.changed-folder }}

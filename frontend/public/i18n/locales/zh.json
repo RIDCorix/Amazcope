@@ -1,0 +1,126 @@
+{
+  "common": {
+    "create": "创建",
+    "error": "错误",
+    "loading": "加载中",
+    "save": "保存",
+    "saving": "保存中…",
+    "success": "成功",
+    "update": "更新",
+    "updated": "已更新"
+  },
+  "notifications": {
+    "pageTitle": "通知",
+    "pageDescription": "管理您的通知並随時了解重要提醒",
+    "markAllRead": "全部標示為已讀",
+    "settings": "設定",
+    "allNotifications": "所有通知",
+    "unreadCount": "{{count}} 未讀",
+    "viewAndManage": "在此處查看並管理所有通知",
+    "searchPlaceholder": "搜尋通知...",
+    "allStatus": "所有狀態",
+    "allCategories": "所有分類",
+    "markSelected": "標示選取項目",
+    "markAll": "全部標示",
+    "read": "已讀",
+    "notificationsCount": "{{count}} 則通知",
+    "unread": "未讀",
+    "loading": "載入通知中...",
+    "noNotificationsFound": "找不到通知",
+    "adjustFilters": "嘗試調整篩選條件以查看更多通知。",
+    "allCaughtUpMessage": "您已全部處理完畢！新通知將顯示於此。",
+    "stats": {
+      "total": "總計",
+      "unread": "未讀",
+      "read": "已讀",
+      "archived": "已封存",
+      "requiresAttention": "尚無通知",
+      "noNotificationsYet": "尚無通知",
+      "allCaughtUp": "全部已讀"
+    },
+    "tabs": {
+      "all": "全部",
+      "unread": "未讀",
+      "read": "已讀",
+      "archived": "已封存"
+    },
+    "alerts": {
+      "manyUnread": "您有 {{count}} 則未讀通知",
+      "considerMarking": "考慮將重要通知標示為已讀以保持井然有序"
+    },
+    "success": {
+      "markedAsRead": "通知已標示為已讀",
+      "markedAllRead": "所有通知已標示為已讀",
+      "markedSelectedRead": "{{count}} 則通知已標示為已讀",
+      "archived": "通知已封存",
+      "deleted": "通知已刪除"
+    },
+    "errors": {
+      "loadFailed": "無法載入通知",
+      "markAsReadFailed": "無法將通知標示為已讀",
+      "markAllFailed": "無法將所有通知標示為已讀",
+      "markSelectedFailed": "無法將選取的通知標示為已讀",
+      "archiveFailed": "無法封存通知",
+      "deleteFailed": "無法刪除通知"
+    }
+  },
+  "product": {
+    "backToProducts": "返回產品列表",
+    "active": "活躍",
+    "inactive": "未活躍",
+    "category": "分類",
+    "viewCategoryBestsellers": "查看分類暢銷榜",
+    "viewOnAmazon": "在 Amazon 上查看",
+    "editProduct": "編輯產品",
+    "refreshData": "刷新數據",
+    "refreshing": "刷新中...",
+    "lastUpdated": "最後更新",
+    "notFound": "找不到產品",
+    "tabs": {
+      "overview": "概覽",
+      "metrics": "指標",
+      "reviews": "評論",
+      "bestsellers": "暢銷榜"
+    },
+    "pricing": {
+      "title": "當前價格",
+      "price": "價格",
+      "original": "原價",
+      "off": "折扣",
+      "noPricing": "暫無價格數據"
+    },
+    "bsr": {
+      "title": "暢銷排名",
+      "rank": "排名",
+      "in": "於",
+      "noBsr": "暫無排名數據"
+    },
+    "reviews": {
+      "summary": "評論摘要",
+      "reviews": "則評論",
+      "verifiedPurchases": "已驗證購買",
+      "verifiedPurchase": "已驗證購買",
+      "vineVoice": "Vine 評論者",
+      "peopleFoundHelpful": "{{count}} 人覺得有幫助",
+      "noReviews": "暫無評論。系統正在後台收集評論數據。",
+      "anonymous": "匿名"
+    },
+    "bestsellers": {
+      "snapshotFrom": "快照時間",
+      "yourProductRanks": "您的產品排名第 {{rank}} 名",
+      "inThisCategory": "在此分類中",
+      "notInTop100": "您的產品不在前 100 名",
+      "top10Title": "前 10 名暢銷產品",
+      "competitiveAnalysis": "競爭分析",
+      "noBestsellers": "暫無暢銷榜數據。系統正在後台收集數據。"
+    },
+    "refresh": {
+      "title": "正在刷新產品",
+      "description": "正在從 Amazon 獲取實時數據...",
+      "complete": "刷新完成",
+      "completeDescription": "產品數據已更新為 Amazon 最新信息。",
+      "failed": "刷新失敗",
+      "failedDescription": "無法刷新產品數據"
+    }
+  }
+}

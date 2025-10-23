@@ -1,0 +1,60 @@
+version: "3.8"
+name: amazcope-dependancies
+services:
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  postgresql:
+    image: postgres:latest
+    command: postgres -c 'max_connections=1000'
+    environment:
+      - POSTGRES_USER=amazcope
+      - POSTGRES_PASSWORD=amazcope
+      - POSTGRES_DB=amazcope
+      - POSTGRES_MAX_WAL_SIZE=3GB
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+    shm_size: "2gb"
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    volumes:
+      - mailpit_data:/data
+    ports:
+      - ${MAILPIT_WEB_PORT:-8025}:8025
+      - ${MAILPIT_SMTP_PORT:-1025}:1025
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  postgres-data:
+  redis_data:
+  backend_media:
+  backend_static:
+  mailpit_data:
+  minio_data:

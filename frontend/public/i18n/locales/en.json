@@ -1,0 +1,126 @@
+{
+  "common": {
+    "create": "Create",
+    "error": "Error",
+    "loading": "Loading",
+    "save": "Save",
+    "saving": "Saving…",
+    "success": "Success",
+    "update": "Update",
+    "updated": "Updated"
+  },
+  "notifications": {
+    "pageTitle": "Notifications",
+    "pageDescription": "Manage your notifications and stay informed about important updates",
+    "markAllRead": "Mark All Read",
+    "settings": "Settings",
+    "allNotifications": "All Notifications",
+    "unreadCount": "{{count}} Unread",
+    "viewAndManage": "View and manage all your notifications here",
+    "searchPlaceholder": "Search notifications...",
+    "allStatus": "All Status",
+    "allCategories": "All Categories",
+    "markSelected": "Mark Selected",
+    "markAll": "Mark All",
+    "read": "Read",
+    "notificationsCount": "{{count}} notifications",
+    "unread": "unread",
+    "loading": "Loading notifications...",
+    "noNotificationsFound": "No notifications found",
+    "adjustFilters": "Try adjusting your filters to see more notifications.",
+    "allCaughtUpMessage": "You're all caught up! New notifications will appear here.",
+    "stats": {
+      "total": "Total",
+      "unread": "Unread",
+      "read": "Read",
+      "archived": "Archived",
+      "requiresAttention": "Requires attention",
+      "noNotificationsYet": "No notifications yet",
+      "allCaughtUp": "All caught up"
+    },
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "archived": "Archived"
+    },
+    "alerts": {
+      "manyUnread": "You have {{count}} unread notifications",
+      "considerMarking": "Consider marking important ones as read to stay organized"
+    },
+    "success": {
+      "markedAsRead": "Notification marked as read",
+      "markedAllRead": "All notifications marked as read",
+      "markedSelectedRead": "{{count}} notifications marked as read",
+      "archived": "Notification archived",
+      "deleted": "Notification deleted"
+    },
+    "errors": {
+      "loadFailed": "Failed to load notifications",
+      "markAsReadFailed": "Failed to mark notification as read",
+      "markAllFailed": "Failed to mark all notifications as read",
+      "markSelectedFailed": "Failed to mark selected notifications as read",
+      "archiveFailed": "Failed to archive notification",
+      "deleteFailed": "Failed to delete notification"
+    }
+  },
+  "product": {
+    "backToProducts": "Back to Products",
+    "active": "Active",
+    "inactive": "Inactive",
+    "category": "Category",
+    "viewCategoryBestsellers": "View Category Bestsellers",
+    "viewOnAmazon": "View on Amazon",
+    "editProduct": "Edit Product",
+    "refreshData": "Refresh Data",
+    "refreshing": "Refreshing...",
+    "lastUpdated": "Last updated",
+    "notFound": "Product not found",
+    "tabs": {
+      "overview": "Overview",
+      "metrics": "Metrics",
+      "reviews": "Reviews",
+      "bestsellers": "Bestsellers"
+    },
+    "pricing": {
+      "title": "Current Pricing",
+      "price": "Price",
+      "original": "Original",
+      "off": "OFF",
+      "noPricing": "No pricing data available"
+    },
+    "bsr": {
+      "title": "Best Sellers Rank",
+      "rank": "Rank",
+      "in": "in",
+      "noBsr": "No BSR data available"
+    },
+    "reviews": {
+      "summary": "Review Summary",
+      "reviews": "reviews",
+      "verifiedPurchases": "verified purchases",
+      "verifiedPurchase": "Verified Purchase",
+      "vineVoice": "Vine Voice",
+      "peopleFoundHelpful": "{{count}} people found this helpful",
+      "noReviews": "No reviews available yet. Reviews are being collected in the background.",
+      "anonymous": "Anonymous"
+    },
+    "bestsellers": {
+      "snapshotFrom": "Snapshot from",
+      "yourProductRanks": "Your product ranks",
+      "inThisCategory": "in this category",
+      "notInTop100": "Your product is not in top 100",
+      "top10Title": "Top 10 Bestsellers",
+      "competitiveAnalysis": "Competitive analysis",
+      "noBestsellers": "No bestseller data available yet. Data is being collected in the background."
+    },
+    "refresh": {
+      "title": "Refreshing Product",
+      "description": "Fetching real-time data from Amazon...",
+      "complete": "Refresh Complete",
+      "completeDescription": "Product data has been updated with the latest information from Amazon.",
+      "failed": "Refresh Failed",
+      "failedDescription": "Failed to refresh product data"
+    }
+  }
+}

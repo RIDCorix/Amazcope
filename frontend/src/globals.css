@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+
+    /* App-specific semantic colors */
+    --page-bg: 210 40% 98%;
+    --page-fg: 222.2 84% 4.9%;
+    --container-bg: 0 0% 100%;
+    --container-border: 214.3 31.8% 91.4%;
+    --header-bg: 0 0% 100%;
+    --header-border: 214.3 31.8% 91.4%;
+    --hover-bg: 210 40% 96.1%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+
+    /* App-specific semantic colors for dark mode */
+    --page-bg: 222.2 84% 4.9%;
+    --page-fg: 210 40% 98%;
+    --container-bg: 217.2 32.6% 12%;
+    --container-border: 217.2 32.6% 17.5%;
+    --header-bg: 217.2 32.6% 12%;
+    --header-border: 217.2 32.6% 17.5%;
+    --hover-bg: 217.2 32.6% 17.5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Semantic component classes */
+  .page-container {
+    @apply min-h-screen bg-[hsl(var(--page-bg))] text-[hsl(var(--page-fg))];
+  }
+
+  .content-container {
+    @apply bg-[hsl(var(--container-bg))] border-[hsl(var(--container-border))];
+  }
+
+  .header-container {
+    @apply bg-[hsl(var(--header-bg))] border-[hsl(var(--header-border))];
+  }
+
+  .hover-surface {
+    @apply hover:bg-[hsl(var(--hover-bg))] transition-colors;
+  }
+}

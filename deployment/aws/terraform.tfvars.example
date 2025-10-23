@@ -1,0 +1,127 @@
+# ========================================
+# AWS Configuration
+# ========================================
+aws_region         = "us-east-1"
+environment        = "production"
+project_name       = "amazon-monitor"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# ========================================
+# Database Configuration (Direct PostgreSQL Credentials)
+# ========================================
+# Provide your PostgreSQL database credentials directly
+# This can be from Supabase, AWS RDS, DigitalOcean, or any PostgreSQL instance
+
+postgres_host     = "db.your-project.supabase.co"  # Your PostgreSQL host
+postgres_port     = "5432"                          # PostgreSQL port (default: 5432)
+postgres_db       = "postgres"                      # Database name
+postgres_user     = "postgres"                      # Database username
+postgres_password = "your-secure-password-here"     # Database password (CHANGE THIS!)
+
+# Examples for different providers:
+# Supabase:   postgres_host = "db.xxxxxxxxxxxxxxxx.supabase.co"
+# AWS RDS:    postgres_host = "amazcope-db.xxxxxxxxxx.us-east-1.rds.amazonaws.com"
+# Railway:    postgres_host = "containers-us-west-xxx.railway.app"
+# Neon:       postgres_host = "ep-xxxxx-xxxxx.us-east-2.aws.neon.tech"
+
+# ========================================
+# Redis Configuration
+# ========================================
+redis_node_type       = "cache.t3.micro"
+redis_num_cache_nodes = 1
+
+# ========================================
+# ECS Configuration
+# ========================================
+ecs_task_cpu          = 512
+ecs_task_memory       = 1024
+api_desired_count     = 2
+worker_desired_count  = 2
+
+# ========================================
+# Networking
+# ========================================
+vpc_cidr             = "10.0.0.0/16"
+enable_nat_gateway   = true
+enable_vpc_flow_logs = false
+az_count             = 2
+
+# ========================================
+# Load Balancer Configuration
+# ========================================
+# Set to false if using AWS free tier (ALB is not included in free tier)
+# When disabled, API will be accessible via ECS task public IPs on port 8000
+enable_alb = true  # Set to false for free tier users
+
+# ========================================
+# Frontend Hosting
+# ========================================
+# CloudFront + S3 static website hosting configuration
+
+# Optional: Custom domain for frontend (requires ACM certificate)
+# frontend_domain        = "app.yourcompany.com"
+# ssl_certificate_arn    = "arn:aws:acm:us-east-1:account:certificate/certificate-id"
+
+# CloudFront pricing tier (cost optimization)
+cloudfront_price_class  = "PriceClass_100"  # US, Canada, Europe only (cheapest)
+# cloudfront_price_class = "PriceClass_200"  # + Asia, Australia
+# cloudfront_price_class = "PriceClass_All"   # Global (most expensive)
+
+# Logging (optional - increases costs)
+enable_cloudfront_logs = false  # Set to true to enable access logging
+
+# ========================================
+# External Services
+# ========================================
+apify_api_token = "your-apify-api-token"
+openai_api_key  = "sk-your-openai-api-key"
+
+# ========================================
+# Zeabur Configuration
+# ========================================
+# If using Zeabur for deployment (recommended)
+zeabur_project_id   = "your-zeabur-project-id"
+zeabur_service_name = "amazcope"
+zeabur_region       = "us-west1"
+zeabur_app_url      = "https://your-app.zeabur.app"  # Your Zeabur app URL
+
+# ========================================
+# Application Configuration
+# ========================================
+jwt_secret_key         = "your-jwt-secret-key-change-this"
+cors_origins           = "https://your-frontend.com,https://your-app.zeabur.app"
+log_level              = "INFO"
+rate_limit_per_minute  = 60
+
+# ========================================
+# Sentry Configuration (Optional)
+# ========================================
+sentry_dsn                  = "https://your-sentry-dsn@sentry.io/project-id"
+sentry_environment          = "production"
+sentry_traces_sample_rate   = 1.0
+
+# ========================================
+# Monitoring (Optional)
+# ========================================
+enable_monitoring         = true
+alert_email              = "alerts@yourcompany.com"
+log_retention_days       = 30
+pagerduty_service_key    = ""  # Optional: PagerDuty integration
+slack_webhook_url        = ""  # Optional: Slack alerts
+enable_managed_prometheus = false
+enable_managed_grafana   = false
+
+# ========================================
+# Tags
+# ========================================
+tags = {
+  Project     = "Amazcope"
+  Environment = "production"
+  ManagedBy   = "Terraform"
+  Team        = "Platform"
+}
+
+additional_tags = {
+  CostCenter = "Engineering"
+  Owner      = "platform-team@yourcompany.com"
+}
