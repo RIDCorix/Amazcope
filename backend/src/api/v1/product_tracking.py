@@ -965,7 +965,9 @@ async def get_product_reviews_stats(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    reviews = await Review.filter(product=product).all()
+    # Query reviews using SQLAlchemy (not Tortoise ORM)
+    reviews_result = await db.execute(select(Review).where(Review.product_id == product_id))
+    reviews = reviews_result.scalars().all()
 
     if not reviews:
         return {
@@ -1040,10 +1042,11 @@ async def get_product_bestsellers(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    query = select(BestsellerSnapshot).where(BestsellerSnapshot.product_id == product.id)
+    # Query bestseller snapshots for this product's ASIN
+    query = select(BestsellerSnapshot).where(BestsellerSnapshot.asin == product.asin)
 
     if latest:
-        query = query.order_by(BestsellerSnapshot.snapshot_date.desc()).limit(1)
+        query = query.order_by(BestsellerSnapshot.scraped_at.desc()).limit(1)
         result = await db.execute(query)
         snapshot = result.scalar_one_or_none()
         if not snapshot:
@@ -1052,21 +1055,29 @@ async def get_product_bestsellers(
                 detail="No bestseller snapshot available. Data is being collected in background.",
             )
 
-        # Calculate product's rank in this snapshot
-        product_rank = snapshot.get_product_rank(product.asin)
-
         return {
-            **snapshot.__dict__,
-            "product_rank": product_rank,
-            "top_10": snapshot.get_top_n(10),
+            "asin": snapshot.asin,
+            "rank": snapshot.rank,
+            "category_id": str(snapshot.category_id),
+            "scraped_at": snapshot.scraped_at.isoformat(),
+            "title": snapshot.title,
+            "price": float(snapshot.price) if snapshot.price else None,
         }
     else:
-        query = query.order_by(BestsellerSnapshot.snapshot_date.desc())
+        query = query.order_by(BestsellerSnapshot.scraped_at.desc())
         result = await db.execute(query)
         snapshots = result.scalars().all()
         if not snapshots:
             raise HTTPException(status_code=404, detail="No bestseller snapshots available")
-        return list(snapshots)
+        return [
+            {
+                "asin": s.asin,
+                "rank": s.rank,
+                "category_id": str(s.category_id),
+                "scraped_at": s.scraped_at.isoformat(),
+            }
+            for s in snapshots
+        ]
 
 
 @router.get("/products/{product_id}/bestsellers/history")
@@ -1108,27 +1119,26 @@ async def get_bestsellers_history(
 
     since_date = datetime.utcnow() - timedelta(days=days)
 
+    # Query bestseller snapshots for this product's ASIN
     snapshot_result = await db.execute(
         select(BestsellerSnapshot)
         .where(
-            BestsellerSnapshot.product_id == product.id,
-            BestsellerSnapshot.snapshot_date >= since_date,
+            BestsellerSnapshot.asin == product.asin,
+            BestsellerSnapshot.scraped_at >= since_date,
         )
-        .order_by(BestsellerSnapshot.snapshot_date)
+        .order_by(BestsellerSnapshot.scraped_at)
     )
     snapshots = snapshot_result.scalars().all()
 
     history = []
     for snapshot in snapshots:
-        rank = snapshot.get_product_rank(product.asin)
-        if rank:
-            history.append(
-                {
-                    "date": snapshot.snapshot_date,
-                    "rank": rank,
-                    "category": snapshot.category_name,
-                    "total_products": snapshot.total_products_scraped,
-                }
-            )
+        history.append(
+            {
+                "date": snapshot.scraped_at.isoformat(),
+                "rank": snapshot.rank,
+                "category_id": str(snapshot.category_id),
+                "asin": snapshot.asin,
+            }
+        )
 
     return {"product_asin": product.asin, "history": history}

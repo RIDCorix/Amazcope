@@ -585,14 +585,22 @@ class TestGenerateDailyReport:
         with patch("mcp_server.tools.get_async_db_context") as mock_context:
             mock_context.return_value.__aenter__.return_value = db_session
 
-            result = await mcp_tools.generate_daily_report.fn(
-                user_id=str(test_user.id),
-                products_analyzed=0,
-                suggestions_created=0,
-                critical_issues=0,
-                opportunities=0,
-                summary_message="No products found",
-            )
+            # Mock the notification topic send method to avoid nested async context
+            with patch("notification.topics.daily_report_topic.send") as mock_send:
+                mock_send.return_value = {
+                    "notifications_created": 0,
+                    "emails_sent": 0,
+                    "errors": [],
+                }
 
-            # Should handle gracefully
-            assert isinstance(result, dict)
+                result = await mcp_tools.generate_daily_report.fn(
+                    user_id=str(test_user.id),
+                    products_analyzed=0,
+                    suggestions_created=0,
+                    critical_issues=0,
+                    opportunities=0,
+                    summary_message="No products found",
+                )
+
+                # Should handle gracefully
+                assert isinstance(result, dict)

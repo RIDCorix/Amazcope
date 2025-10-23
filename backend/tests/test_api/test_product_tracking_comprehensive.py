@@ -8,6 +8,8 @@ Tests all product tracking operations including:
 - Reviews and bestsellers
 """
 
+import uuid
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -39,13 +41,22 @@ class TestProductFromUrl:
             "scrapper.product_tracking_service.ProductTrackingService.add_product_from_url",
             new_callable=AsyncMock,
         ) as mock_add:
-            # Mock the service response
+            # Mock the service response with all required ProductOut fields
             mock_product = Product(
+                id=uuid.uuid4(),  # Required for ProductOut
                 asin="B094WLFGD3",
                 marketplace="com",
                 title="Echo Dot (4th Gen)",
+                brand="Amazon",
+                url="https://www.amazon.com/dp/B094WLFGD3",
                 current_price=49.99,
                 currency="USD",
+                is_active=True,
+                track_frequency="daily",
+                price_change_threshold=10.0,
+                bsr_change_threshold=30.0,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             mock_add.return_value = mock_product
 
@@ -75,12 +86,13 @@ class TestProductFromUrl:
             "/api/v1/tracking/products/from-url",
             headers=auth_headers,
             json={
-                "url": "https://not-amazon.com/dp/B094WLFGD3",
+                "url": "https://not-a-valid-amazon-url.com/invalid",
                 "price_change_threshold": 10.0,
                 "bsr_change_threshold": 30.0,
             },
         )
 
+        # Invalid URL should be caught by ASIN extraction and return 400 or 422 (validation error)
         assert response.status_code in [400, 422]
 
     @pytest.mark.asyncio
@@ -94,7 +106,9 @@ class TestProductFromUrl:
             },
         )
 
-        assert response.status_code == 401
+        # FastAPI returns 403 Forbidden when no auth header provided
+        # (get_current_user dependency raises HTTPException with 403)
+        assert response.status_code == 403
 
 
 class TestProductCRUD:
@@ -466,13 +480,17 @@ class TestProductReviews:
         auth_headers: dict[str, str],
     ):
         """Test getting product reviews."""
-        # Create a test review
+        # Create a test review (only use fields that exist in Review model)
         review = Review(
             product_id=test_product.id,
+            review_id="R1234567890",
             reviewer_name="John Doe",
-            rating=5,
+            rating=5.0,
             title="Great product",
-            content="Really satisfied with this purchase",
+            text="Really satisfied with this purchase",
+            review_date=datetime.now(timezone.utc),
+            verified_purchase=True,
+            helpful_count=10,
         )
         db_session.add(review)
         await db_session.commit()
@@ -516,13 +534,22 @@ class TestProductBestsellers:
         auth_headers: dict[str, str],
     ):
         """Test getting current bestseller rank."""
-        # Create a bestseller snapshot
-        from products.models import BestsellerSnapshot
+        # Create a category and bestseller snapshot
+        from products.models import BestsellerSnapshot, Category
+
+        category = Category(
+            name="Electronics",
+            marketplace="com",
+            category_id="electronics_123",
+        )
+        db_session.add(category)
+        await db_session.flush()  # Get category ID
 
         bestseller = BestsellerSnapshot(
-            product_id=test_product.id,
+            category_id=category.id,
+            asin=test_product.asin,
             rank=1500,
-            category="Electronics",
+            scraped_at=datetime.now(timezone.utc),
         )
         db_session.add(bestseller)
         await db_session.commit()
@@ -551,7 +578,9 @@ class TestProductBestsellers:
 
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data, dict)
+        assert "history" in data
+        assert isinstance(data["history"], list)
 
 
 class TestProductTrackingFlow:

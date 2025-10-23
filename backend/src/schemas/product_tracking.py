@@ -291,17 +291,17 @@ class ReviewOut(BaseModel):
 
     id: UUID
     review_id: str
-    title: str
-    text: str
+    title: str | None
+    text: str | None
     rating: float
     verified_purchase: bool
     helpful_count: int
-    review_date: datetime
+    review_date: datetime | None
     reviewer_name: str | None
-    reviewer_id: str | None
-    is_vine_voice: bool
-    images: list[str] | None
-    variant_info: dict[str, Any] | None
+    reviewer_id: str | None = None  # Optional field with default
+    is_vine_voice: bool = False  # Optional field with default
+    images: list[str] | None = None  # Optional field with default
+    variant_info: dict[str, Any] | None = None  # Optional field with default
     created_at: datetime
 
     model_config = {"from_attributes": True}
