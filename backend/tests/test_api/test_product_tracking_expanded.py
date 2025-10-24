@@ -44,7 +44,7 @@ class TestAddProductFromUrl:
                 url="https://www.amazon.com/dp/B07XJ8C8F5",
                 created_by_id=test_user.id,
                 is_active=True,
-                track_frequency=60,
+                track_frequency="daily",
                 price_change_threshold=10.0,
                 bsr_change_threshold=30.0,
                 created_at=datetime.utcnow(),
