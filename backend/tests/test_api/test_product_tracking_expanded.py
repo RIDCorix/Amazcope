@@ -20,7 +20,7 @@ import pytest
 from httpx import AsyncClient
 
 from alert.models import Alert
-from products.models import Product, ProductSnapshot, Review
+from products.models import Product, ProductSnapshot, Review, UserProduct
 from users.models import User
 
 
@@ -43,6 +43,12 @@ class TestAddProductFromUrl:
                 title="Test Product from URL",
                 url="https://www.amazon.com/dp/B07XJ8C8F5",
                 created_by_id=test_user.id,
+                is_active=True,
+                track_frequency=60,
+                price_change_threshold=10.0,
+                bsr_change_threshold=30.0,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
             )
             mock_add.return_value = mock_product
 
@@ -169,21 +175,52 @@ class TestUpdateProductSnapshot:
         self, client: AsyncClient, test_product: Product, auth_headers: dict
     ):
         """Test triggering product snapshot update."""
+        from datetime import UTC
+
         with patch(
-            "scrapper.product_tracking_service.ProductTrackingService._create_snapshot"
-        ) as mock_snap:
+            "scrapper.product_tracking_service.ProductTrackingService.update_product"
+        ) as mock_update:
+            # Create complete mock snapshot with all required fields
+            now = datetime.now(UTC)
             mock_snapshot = ProductSnapshot(
                 id=uuid4(),
                 product_id=test_product.id,
                 price=Decimal("29.99"),
                 original_price=Decimal("39.99"),
+                buybox_price=Decimal("29.99"),
+                currency="USD",
+                discount_percentage=25.0,
                 bsr_main_category=1500,
+                bsr_small_category=250,
+                main_category_name="Electronics",
+                small_category_name="Headphones",
                 rating=4.5,
                 review_count=250,
                 in_stock=True,
-                scraped_at=datetime.utcnow(),
+                stock_quantity=50,
+                seller_name="Amazon.com",
+                seller_id="ATVPDKIKX0DER",
+                seller_store_url="https://www.amazon.com/stores/Amazon",
+                is_amazon_seller=True,
+                is_fba=False,
+                fulfilled_by="Amazon",
+                coupon_available=False,
+                coupon_text=None,
+                is_deal=True,
+                deal_type="Lightning Deal",
+                is_prime=True,
+                has_amazons_choice=True,
+                amazons_choice_keywords={"category": "wireless earbuds"},
+                past_sales="5K+ bought in past month",
+                delivery_message="FREE delivery Tomorrow",
+                product_type="Consumer Electronics",
+                is_used=False,
+                stock_status="In Stock",
+                scraped_at=now,
+                created_at=now,
+                updated_at=now,
             )
-            mock_snap.return_value = mock_snapshot
+            mock_update.return_value = mock_snapshot
 
             response = await client.post(
                 f"/api/v1/tracking/products/{test_product.id}/update",
@@ -191,6 +228,7 @@ class TestUpdateProductSnapshot:
             )
 
             assert response.status_code in [200, 201]
+            mock_update.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -329,7 +367,12 @@ class TestBatchOperations:
     """Test batch update/refresh endpoints."""
 
     async def test_batch_update(
-        self, client: AsyncClient, test_product: Product, auth_headers: dict, db_session
+        self,
+        client: AsyncClient,
+        test_product: Product,
+        auth_headers: dict,
+        db_session,
+        test_user: User,
     ):
         """Test batch updating multiple products."""
         # Create additional products
@@ -342,6 +385,15 @@ class TestBatchOperations:
         db_session.add(product2)
         await db_session.commit()
         await db_session.refresh(product2)
+
+        user_product = UserProduct(
+            user_id=test_user.id,
+            product_id=product2.id,
+            is_primary=True,
+        )
+        db_session.add(user_product)
+        await db_session.commit()
+        await db_session.refresh(user_product)
 
         with patch(
             "scrapper.product_tracking_service.ProductTrackingService._create_snapshot"

@@ -5,6 +5,7 @@ import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from dotenv import load_dotenv
 
@@ -425,3 +426,119 @@ def mock_openai_response() -> dict[str, Any]:
             },
         ]
     }
+
+
+# ============================================================================
+# GLOBAL MOCKS - Prevent real API calls during tests
+# ============================================================================
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_apify_client():
+    """Globally mock ApifyClientAsync to prevent real API calls.
+
+    This fixture automatically patches the Apify client for ALL tests.
+    Individual tests can override specific methods as needed.
+    """
+    with patch("services.apify_service.ApifyClientAsync") as mock_client_class:
+        # Create mock instance
+        mock_instance = AsyncMock()
+
+        # Mock the actor().call() method chain for product scraping
+        mock_actor = AsyncMock()
+        mock_actor.call = AsyncMock(return_value={
+            "id": "test-run-id",
+            "status": "SUCCEEDED",
+            "defaultDatasetId": "test-dataset-id",
+        })
+        mock_instance.actor.return_value = mock_actor
+
+        # Mock dataset().list_items() for retrieving scraped data
+        mock_dataset = AsyncMock()
+        mock_dataset.list_items = AsyncMock(return_value={
+            "items": [
+                {
+                    "asin": "B094WLFGD3",
+                    "title": "Echo Dot (4th Gen) | Smart speaker",
+                    "brand": "Amazon",
+                    "category": "Electronics",
+                    "price": 49.99,
+                    "currency": "USD",
+                    "availability": "In Stock",
+                    "rating": 4.7,
+                    "reviewsCount": 50000,
+                    "bsr": 1,
+                    "bsrCategory": "Amazon Devices & Accessories",
+                    "imageUrl": "https://m.media-amazon.com/images/I/test.jpg",
+                    "url": "https://www.amazon.com/dp/B094WLFGD3",
+                }
+            ]
+        })
+        mock_instance.dataset.return_value = mock_dataset
+
+        # Return the mock instance when ApifyClientAsync is instantiated
+        mock_client_class.return_value = mock_instance
+
+        yield mock_client_class
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_openai_client():
+    """Globally mock AsyncOpenAI to prevent real API calls.
+
+    This fixture automatically patches the OpenAI client for ALL tests.
+    Individual tests can override specific methods as needed.
+    """
+    with patch("services.optimization_service.AsyncOpenAI") as mock_client_class:
+        # Create mock instance
+        mock_instance = MagicMock()
+
+        # Mock the chat.completions.create() method
+        mock_completion = AsyncMock()
+        mock_completion.create = AsyncMock(return_value=MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content="""
+                        {
+                            "suggestions": [
+                                {
+                                    "type": "title",
+                                    "current": "Old Title",
+                                    "suggested": "Optimized SEO Title with Keywords",
+                                    "confidence": 0.85,
+                                    "reasoning": "Include primary keywords for better search visibility"
+                                },
+                                {
+                                    "type": "bullet_points",
+                                    "current": "Basic bullet",
+                                    "suggested": "Enhanced bullet with features and benefits",
+                                    "confidence": 0.80,
+                                    "reasoning": "Highlight key features and customer benefits"
+                                }
+                            ]
+                        }
+                        """
+                    )
+                )
+            ]
+        ))
+        mock_instance.chat = MagicMock()
+        mock_instance.chat.completions = mock_completion
+
+        # Return the mock instance when AsyncOpenAI is instantiated
+        mock_client_class.return_value = mock_instance
+
+        yield mock_client_class
+
+
+@pytest.fixture(autouse=True)
+def mock_external_apis(mock_apify_client, mock_openai_client):
+    """Ensure both Apify and OpenAI mocks are active for every test.
+
+    This fixture combines both global mocks and ensures they're
+    available for all tests without needing explicit imports.
+    """
+    # Both mocks are already active from session-scoped fixtures
+    # This fixture just ensures they're used together
+    yield
