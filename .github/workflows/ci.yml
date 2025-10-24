@@ -199,7 +199,6 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       needs.get-changed-folder.outputs.py-any-changed == 'true'
     steps:
-      - uses: Bardavon-Health/actions-aws-ssm-params-to-env@v1.4.0
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: uv sync
@@ -207,3 +206,10 @@ jobs:
         working-directory: ${{ matrix.changed-folder }}
       - run: uv run pytest src --cov=${{ matrix.changed-folder }} --cov-report=xml --cov-report=term-missing
         working-directory: ${{ matrix.changed-folder }}
+        env:
+          SECRET_KEY: insecure-key-for-testing
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          DATABASE_PORT: ${{ secrets.POSTGRES_PORT }}
+          DATABASE_NAME: ${{ secrets.POSTGRES_DB }}
+          DATABASE_USERNAME: ${{ secrets.POSTGRES_USER }}
+          DATABASE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
