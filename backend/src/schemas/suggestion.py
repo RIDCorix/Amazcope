@@ -69,7 +69,7 @@ class SuggestionListOut(BaseModel):
 class ActionApprovalRequest(BaseModel):
     """Schema for approving/declining an action."""
 
-    action_ids: list[int] = Field(description="List of action IDs to approve/decline")
+    action_ids: list[UUID] = Field(description="List of action IDs to approve/decline")
     decision: str = Field(description="Decision: 'approved' or 'declined'")
     apply_immediately: bool = Field(
         default=False, description="If true, apply approved actions immediately"
@@ -81,10 +81,10 @@ class SuggestionApprovalRequest(BaseModel):
 
     suggestion_id: UUID
     decision: str = Field(description="Decision: 'approved', 'declined', or 'partially_approved'")
-    approved_action_ids: list[int] = Field(
+    approved_action_ids: list[UUID] = Field(
         default=[], description="If partially approving, list of action IDs to approve"
     )
-    declined_action_ids: list[int] = Field(
+    declined_action_ids: list[UUID] = Field(
         default=[], description="If partially declining, list of action IDs to decline"
     )
     apply_immediately: bool = Field(default=False, description="Apply approved actions immediately")
@@ -102,8 +102,7 @@ class SuggestionStats(BaseModel):
     total_suggestions: int
     pending: int
     approved: int
-    declined: int
+    rejected: int
     partially_approved: int
-    expired: int
     by_category: dict[str, int]
     by_priority: dict[str, int]

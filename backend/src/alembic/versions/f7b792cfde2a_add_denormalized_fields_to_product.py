@@ -33,7 +33,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "products",
-    sa.Column(
+        sa.Column(
             "original_price",
             sa.Numeric(precision=10, scale=2),
             nullable=True,

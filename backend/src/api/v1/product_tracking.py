@@ -15,6 +15,7 @@ from alert.models import Alert
 from api.deps import get_async_db, get_current_user
 from products.models import (
     BestsellerSnapshot,
+    Category,
     Product,
     ProductSnapshot,
     Review,
@@ -596,26 +597,28 @@ async def refresh_product(
 
     service = ProductTrackingService(db)
 
-    try:
-        # Force fresh scrape (bypass cache)
-        await service.refresh_product(
-            product_id, update_metadata=update_metadata, check_alerts=True
-        )
+    # Force fresh scrape (bypass cache)
+    await service.refresh_product(product_id, update_metadata=update_metadata, check_alerts=True)
 
-        # Get updated product with latest data
-        await db.refresh(product)
-        latest_snapshot = (
-            await ProductSnapshot.filter(product=product).order_by("-scraped_at").first()
-        )
-        unread_alerts = await Alert.filter(product=product, is_read=False).count()
-
-        return {
-            **product.__dict__,
-            "latest_snapshot": latest_snapshot,
-            "unread_alerts_count": unread_alerts,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to refresh product: {str(e)}")
+    # Get updated product with latest data
+    await db.refresh(product)
+    snapshot_result = await db.execute(
+        select(ProductSnapshot)
+        .where(ProductSnapshot.product_id == product.id)
+        .order_by(ProductSnapshot.scraped_at.desc())
+        .limit(1)
+    )
+    latest_snapshot = snapshot_result.scalar_one_or_none()
+    unread_alerts = await db.scalar(
+        select(func.count())
+        .select_from(Alert)
+        .where(Alert.product_id == product.id, Alert.is_read is False)
+    )
+    return {
+        **product.__dict__,
+        "latest_snapshot": latest_snapshot,
+        "unread_alerts_count": unread_alerts,
+    }
 
 
 @router.get("/products/{product_id}/history", response_model=list[SnapshotOut])
@@ -1055,13 +1058,31 @@ async def get_product_bestsellers(
                 detail="No bestseller snapshot available. Data is being collected in background.",
             )
 
+        # Get category information
+        category_result = await db.execute(
+            select(Category).where(Category.id == snapshot.category_id)
+        )
+        category = category_result.scalar_one_or_none()
+
+        # Build response matching BestsellerSnapshotOut schema
         return {
-            "asin": snapshot.asin,
-            "rank": snapshot.rank,
+            "id": snapshot.id,
+            "category_name": category.name if category else "Unknown",
+            "category_url": (category.url if category and category.url else ""),
             "category_id": str(snapshot.category_id),
-            "scraped_at": snapshot.scraped_at.isoformat(),
-            "title": snapshot.title,
-            "price": float(snapshot.price) if snapshot.price else None,
+            "snapshot_date": snapshot.scraped_at,
+            "total_products_scraped": 1,  # Single product query
+            "bestsellers": [
+                {
+                    "asin": snapshot.asin,
+                    "title": snapshot.title,
+                    "rank": snapshot.rank,
+                    "price": float(snapshot.price) if snapshot.price else None,
+                    "rating": float(snapshot.rating) if snapshot.rating else None,
+                    "review_count": snapshot.review_count,
+                }
+            ],
+            "product_rank": snapshot.rank,
         }
     else:
         query = query.order_by(BestsellerSnapshot.scraped_at.desc())
@@ -1069,15 +1090,37 @@ async def get_product_bestsellers(
         snapshots = result.scalars().all()
         if not snapshots:
             raise HTTPException(status_code=404, detail="No bestseller snapshots available")
-        return [
-            {
-                "asin": s.asin,
-                "rank": s.rank,
-                "category_id": str(s.category_id),
-                "scraped_at": s.scraped_at.isoformat(),
-            }
-            for s in snapshots
-        ]
+
+        # For non-latest, just return the most recent snapshot
+        # (since response_model is BestsellerSnapshotOut, not a list)
+        snapshot = snapshots[0]
+
+        # Get category information
+        category_result = await db.execute(
+            select(Category).where(Category.id == snapshot.category_id)
+        )
+        category = category_result.scalar_one_or_none()
+
+        return {
+            "id": snapshot.id,
+            "category_name": category.name if category else "Unknown",
+            "category_url": (category.url if category and category.url else ""),
+            "category_id": str(snapshot.category_id),
+            "snapshot_date": snapshot.scraped_at,
+            "total_products_scraped": len(snapshots),
+            "bestsellers": [
+                {
+                    "asin": s.asin,
+                    "title": s.title,
+                    "rank": s.rank,
+                    "price": float(s.price) if s.price else None,
+                    "rating": float(s.rating) if s.rating else None,
+                    "review_count": s.review_count,
+                }
+                for s in snapshots
+            ],
+            "product_rank": snapshot.rank,
+        }
 
 
 @router.get("/products/{product_id}/bestsellers/history")

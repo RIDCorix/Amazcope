@@ -170,16 +170,16 @@ class TestUpdateProductSnapshot:
     ):
         """Test triggering product snapshot update."""
         with patch(
-            "scrapper.product_tracking_service.ProductTrackingService.create_snapshot"
+            "scrapper.product_tracking_service.ProductTrackingService._create_snapshot"
         ) as mock_snap:
             mock_snapshot = ProductSnapshot(
                 id=uuid4(),
                 product_id=test_product.id,
                 price=Decimal("29.99"),
                 original_price=Decimal("39.99"),
-                current_bsr=1500,
+                bsr_main_category=1500,
                 rating=4.5,
-                reviews_count=250,
+                review_count=250,
                 in_stock=True,
                 scraped_at=datetime.utcnow(),
             )
@@ -219,19 +219,28 @@ class TestGetProductAlerts:
     """Test GET /api/v1/tracking/products/{id}/alerts endpoint."""
 
     async def test_get_alerts_success(
-        self, client: AsyncClient, test_product: Product, auth_headers: dict, db_session
+        self,
+        client: AsyncClient,
+        test_product: Product,
+        auth_headers: dict,
+        db_session,
+        test_user: User,
     ):
         """Test getting product alerts."""
         # Create test alerts
         alert1 = Alert(
+            title="Price Drop Alert",
             product_id=test_product.id,
+            user_id=test_user.id,
             alert_type="price_change",
             message="Price dropped by 15%",
             severity="medium",
             is_read=False,
         )
         alert2 = Alert(
+            title="BSR Improvement Alert",
             product_id=test_product.id,
+            user_id=test_user.id,
             alert_type="bsr_change",
             message="BSR improved by 40%",
             severity="high",
@@ -251,11 +260,18 @@ class TestGetProductAlerts:
         assert len(data) >= 2
 
     async def test_get_alerts_with_filters(
-        self, client: AsyncClient, test_product: Product, auth_headers: dict, db_session
+        self,
+        client: AsyncClient,
+        test_product: Product,
+        auth_headers: dict,
+        db_session,
+        test_user: User,
     ):
         """Test getting alerts with unread filter."""
         alert = Alert(
+            title="Stock Change Alert",
             product_id=test_product.id,
+            user_id=test_user.id,
             alert_type="stock_change",
             message="Product back in stock",
             severity="low",
@@ -279,11 +295,18 @@ class TestMarkAlertRead:
     """Test POST /api/v1/tracking/products/{id}/alerts/{alert_id}/read endpoint."""
 
     async def test_mark_alert_read(
-        self, client: AsyncClient, test_product: Product, auth_headers: dict, db_session
+        self,
+        client: AsyncClient,
+        test_product: Product,
+        auth_headers: dict,
+        db_session,
+        test_user: User,
     ):
         """Test marking an alert as read."""
         alert = Alert(
+            title="Test Alert",
             product_id=test_product.id,
+            user_id=test_user.id,
             alert_type="price_change",
             message="Test alert",
             severity="medium",
@@ -321,13 +344,13 @@ class TestBatchOperations:
         await db_session.refresh(product2)
 
         with patch(
-            "scrapper.product_tracking_service.ProductTrackingService.create_snapshot"
+            "scrapper.product_tracking_service.ProductTrackingService._create_snapshot"
         ) as mock_snap:
             mock_snap.return_value = ProductSnapshot(
                 id=uuid4(),
                 product_id=test_product.id,
                 price=Decimal("29.99"),
-                current_bsr=1500,
+                bsr_main_category=1500,
                 rating=4.5,
                 in_stock=True,
                 scraped_at=datetime.utcnow(),
@@ -336,7 +359,7 @@ class TestBatchOperations:
             response = await client.post(
                 "/api/v1/tracking/products/batch-update",
                 headers=auth_headers,
-                json={"product_ids": [str(test_product.id), str(product2.id)]},
+                json=[str(test_product.id), str(product2.id)],
             )
 
             # Batch operations may return different status codes
@@ -347,9 +370,8 @@ class TestBatchOperations:
     ):
         """Test batch refreshing multiple products."""
         response = await client.post(
-            "/api/v1/tracking/products/batch-refresh",
+            f"/api/v1/tracking/products/batch-refresh?product_ids={str(test_product.id)}",
             headers=auth_headers,
-            json={"product_ids": [str(test_product.id)]},
         )
 
         assert response.status_code in [200, 202, 207]
