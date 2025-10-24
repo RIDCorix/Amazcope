@@ -122,24 +122,6 @@ resource "aws_iam_role_policy" "ecs_task_execution_logs" {
           "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${var.project_name}-${var.environment}*:*"
         ]
       },
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:DescribeRepositories",
-          "ecr:GetRepositoryPolicy",
-          "ecr:ListImages",
-          "ecr:DescribeImages",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PullImage"
-        ],
-        Resource = "*"
-      },
       // S3
       {
         Effect = "Allow"
@@ -167,6 +149,24 @@ resource "aws_iam_role" "ecs_task" {
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:DescribeRepositories",
+          "ecr:GetRepositoryPolicy",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PullImage"
+        ],
+        Resource = "*"
       }
     ]
   })
