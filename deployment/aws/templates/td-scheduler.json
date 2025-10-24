@@ -14,7 +14,7 @@
     "essential": true,
     "readonlyRootFilesystem": false,
     "command": ["sh", "./scheduler-entrypoint.sh"],
-    "secrets": [],
+    "secrets": ${ADDITIONAL_SECRETS},
     "mountPoints": [],
     "volumesFrom": [],
     "workingDirectory": "/home/marktech/",

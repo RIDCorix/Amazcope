@@ -165,8 +165,8 @@ resource "aws_secretsmanager_secret_version" "app_secrets" {
 
     # Redis connection
     REDIS_URL  = module.redis.redis_connection_string
-    REDIS_HOST = module.redis.redis_primary_endpoint
-    REDIS_PORT = "6379"
+    REDIS_HOST = module.redis.redis_primary_endpoint.split(":")[0]
+    REDIS_PORT = module.redis.redis_primary_endpoint.split(":")[1]
 
     # Application secrets
     SECRET_KEY      = var.jwt_secret_key != "" ? var.jwt_secret_key : random_password.secret_key.result

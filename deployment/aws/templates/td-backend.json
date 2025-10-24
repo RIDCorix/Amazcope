@@ -15,7 +15,7 @@
     "essential": true,
     "readonlyRootFilesystem": false,
     "command": ["sh", "./backend-entrypoint.sh"],
-    "secrets": [],
+    "secrets": ${ADDITIONAL_SECRETS},
     "mountPoints": [],
     "volumesFrom": [],
     "workingDirectory": "/home/marktech/",

@@ -3,6 +3,8 @@
 import argparse
 import sys
 
+from any_registries.exceptions import ItemNotRegistered
+
 from pydantic_commands.base import BaseCommand
 from pydantic_commands.registry import command_registry
 
@@ -91,9 +93,9 @@ class CommandExecutor:
         # Get the command
         try:
             command: BaseCommand = command_registry.get(command_name)
-        except KeyError:
+        except ItemNotRegistered:
             print(f"Unknown command: {command_name}", file=sys.stderr)
-            print(f"Available commands: {', '.join(command_registry.list())}")
+            print(f"Available commands: {', '.join(command_registry.registry.keys())}")
             return 1
 
         # Parse command-specific arguments (skip the command name itself)
