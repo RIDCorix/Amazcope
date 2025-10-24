@@ -446,34 +446,38 @@ def mock_apify_client():
 
         # Mock the actor().call() method chain for product scraping
         mock_actor = AsyncMock()
-        mock_actor.call = AsyncMock(return_value={
-            "id": "test-run-id",
-            "status": "SUCCEEDED",
-            "defaultDatasetId": "test-dataset-id",
-        })
+        mock_actor.call = AsyncMock(
+            return_value={
+                "id": "test-run-id",
+                "status": "SUCCEEDED",
+                "defaultDatasetId": "test-dataset-id",
+            }
+        )
         mock_instance.actor.return_value = mock_actor
 
         # Mock dataset().list_items() for retrieving scraped data
         mock_dataset = AsyncMock()
-        mock_dataset.list_items = AsyncMock(return_value={
-            "items": [
-                {
-                    "asin": "B094WLFGD3",
-                    "title": "Echo Dot (4th Gen) | Smart speaker",
-                    "brand": "Amazon",
-                    "category": "Electronics",
-                    "price": 49.99,
-                    "currency": "USD",
-                    "availability": "In Stock",
-                    "rating": 4.7,
-                    "reviewsCount": 50000,
-                    "bsr": 1,
-                    "bsrCategory": "Amazon Devices & Accessories",
-                    "imageUrl": "https://m.media-amazon.com/images/I/test.jpg",
-                    "url": "https://www.amazon.com/dp/B094WLFGD3",
-                }
-            ]
-        })
+        mock_dataset.list_items = AsyncMock(
+            return_value={
+                "items": [
+                    {
+                        "asin": "B094WLFGD3",
+                        "title": "Echo Dot (4th Gen) | Smart speaker",
+                        "brand": "Amazon",
+                        "category": "Electronics",
+                        "price": 49.99,
+                        "currency": "USD",
+                        "availability": "In Stock",
+                        "rating": 4.7,
+                        "reviewsCount": 50000,
+                        "bsr": 1,
+                        "bsrCategory": "Amazon Devices & Accessories",
+                        "imageUrl": "https://m.media-amazon.com/images/I/test.jpg",
+                        "url": "https://www.amazon.com/dp/B094WLFGD3",
+                    }
+                ]
+            }
+        )
         mock_instance.dataset.return_value = mock_dataset
 
         # Return the mock instance when ApifyClientAsync is instantiated
@@ -495,11 +499,12 @@ def mock_openai_client():
 
         # Mock the chat.completions.create() method
         mock_completion = AsyncMock()
-        mock_completion.create = AsyncMock(return_value=MagicMock(
-            choices=[
-                MagicMock(
-                    message=MagicMock(
-                        content="""
+        mock_completion.create = AsyncMock(
+            return_value=MagicMock(
+                choices=[
+                    MagicMock(
+                        message=MagicMock(
+                            content="""
                         {
                             "suggestions": [
                                 {
@@ -519,10 +524,11 @@ def mock_openai_client():
                             ]
                         }
                         """
+                        )
                     )
-                )
-            ]
-        ))
+                ]
+            )
+        )
         mock_instance.chat = MagicMock()
         mock_instance.chat.completions = mock_completion
 
